@@ -352,10 +352,11 @@ bool indexIsOldOrBad( string const & indexFile, bool hasZipFile )
 class GlsDictionary: public BtreeIndexing::BtreeDictionary
 {
   Mutex idxMutex;
-  File::Class idx;
+//  File::Class idx;
+  string _indexFile;
   IdxHeader idxHeader;
   dictData * dz;
-  ChunkedStorage::Reader chunks;
+//  ChunkedStorage::Reader chunks;
   Mutex dzMutex;
   Mutex resourceZipMutex;
   IndexedZip resourceZip;
@@ -448,13 +449,13 @@ GlsDictionary::GlsDictionary( string const & id,
                               string const & indexFile,
                               vector< string > const & dictionaryFiles ):
   BtreeDictionary( id, dictionaryFiles ),
-  idx( indexFile, "rb" ),
-  idxHeader( idx.read< IdxHeader >() ),
-  dz( 0 ),
-  chunks( idx, idxHeader.chunksOffset )
+  _indexFile(indexFile),
+  dz( 0 )
 {
   // Open the .gls file
-
+  sptr<File::Class> idx = new File::Class( indexFile, "rb" );
+  idxHeader= idx->read< IdxHeader >() ;
+  ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
   DZ_ERRORS error;
   dz = dict_data_open( getDictionaryFilenames()[ 0 ].c_str(), &error, 0 );
 
@@ -464,12 +465,12 @@ GlsDictionary::GlsDictionary( string const & id,
 
   // Read the dictionary name
 
-  idx.seek( sizeof( idxHeader ) );
+  idx->seek( sizeof( idxHeader ) );
 
-  vector< char > dName( idx.read< uint32_t >() );
+  vector< char > dName( idx->read< uint32_t >() );
   if( dName.size() > 0 )
   {
-    idx.read( &dName.front(), dName.size() );
+    idx->read( &dName.front(), dName.size() );
     dictionaryName = string( &dName.front(), dName.size() );
   }
 
@@ -609,6 +610,8 @@ void GlsDictionary::loadArticleText( uint32_t address,
                                      vector< string > & headwords,
                                      string & articleText )
 {
+  sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+  ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
   vector< char > chunk;
   char * articleProps;
   {

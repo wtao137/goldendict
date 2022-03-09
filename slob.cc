@@ -570,7 +570,8 @@ class SlobDictionary: public BtreeIndexing::BtreeDictionary
 {
     Mutex idxMutex;
     Mutex slobMutex, idxResourceMutex;
-    File::Class idx;
+    //File::Class idx;
+    string _indexFile;
     BtreeIndex resourceIndex;
     IdxHeader idxHeader;
     string dictionaryName;
@@ -664,8 +665,7 @@ SlobDictionary::SlobDictionary( string const & id,
                                 string const & indexFile,
                                 vector< string > const & dictionaryFiles ):
     BtreeDictionary( id, dictionaryFiles ),
-    idx( indexFile, "rb" ),
-    idxHeader( idx.read< IdxHeader >() )
+    _indexFile( indexFile)
 {
     // Open data file
 
@@ -680,7 +680,8 @@ SlobDictionary::SlobDictionary( string const & id,
     }
 
     // Initialize the indexes
-
+    sptr< File::Class > idx = new File::Class( indexFile, "rb" );
+    idxHeader               = idx->read< IdxHeader >();
     openIndex( IndexInfo( idxHeader.indexBtreeMaxElements,
                           idxHeader.indexRootOffset ),
                idx, idxMutex );

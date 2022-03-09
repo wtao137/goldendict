@@ -547,7 +547,8 @@ class ZimDictionary: public BtreeIndexing::BtreeDictionary
 
     Mutex idxMutex;
     Mutex zimMutex, idxResourceMutex;
-    File::Class idx;
+    //File::Class idx;
+    string _indexFile;
     BtreeIndex resourceIndex;
     IdxHeader idxHeader;
     string dictionaryName;
@@ -637,15 +638,15 @@ ZimDictionary::ZimDictionary( string const & id,
                               string const & indexFile,
                               vector< string > const & dictionaryFiles ):
     BtreeDictionary( id, dictionaryFiles ),
-    idx( indexFile, "rb" ),
-    idxHeader( idx.read< IdxHeader >() ),
+    _indexFile( indexFile ),
     df( FsEncoding::decode( dictionaryFiles[ 0 ].c_str() ) ),
     linksType( UNKNOWN )
 {
     // Open data file
 
     df.open();
-
+    sptr< File::Class > idx = new File::Class( indexFile, "rb" );
+    idxHeader               = idx->read< IdxHeader >();
     // Initialize the indexes
 
     openIndex( IndexInfo( idxHeader.indexBtreeMaxElements,

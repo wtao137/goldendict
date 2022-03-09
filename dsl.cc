@@ -151,9 +151,10 @@ bool indexIsOldOrBad( string const & indexFile, bool hasZipFile )
 class DslDictionary: public BtreeIndexing::BtreeDictionary
 {
   Mutex idxMutex;
-  File::Class idx;
+//  File::Class idx;
   IdxHeader idxHeader;
-  sptr< ChunkedStorage::Reader > chunks;
+  string _indexFile;
+//  sptr< ChunkedStorage::Reader > chunks;
   string dictionaryName;
   string preferredSoundDictionary;
   map< string, string > abrv;
@@ -288,14 +289,15 @@ DslDictionary::DslDictionary( string const & id,
                               vector< string > const & dictionaryFiles,
                               int maxPictureWidth_ ):
   BtreeDictionary( id, dictionaryFiles ),
-  idx( indexFile, "rb" ),
-  idxHeader( idx.read< IdxHeader >() ),
+  _indexFile(indexFile),
   dz( 0 ),
   deferredInitRunnableStarted( false ),
   optionalPartNom( 0 ),
   articleNom( 0 ),
   maxPictureWidth( maxPictureWidth_ )
 {
+  sptr<File::Class> idx = new File::Class( indexFile, "rb" );
+  idxHeader= idx->read< IdxHeader >() ;
   can_FTS = true;
 
   ftsIdxName = indexFile + "_FTS";
@@ -306,19 +308,19 @@ DslDictionary::DslDictionary( string const & id,
 
   // Read the dictionary name
 
-  idx.seek( sizeof( idxHeader ) );
+  idx->seek( sizeof( idxHeader ) );
 
-  vector< char > dName( idx.read< uint32_t >() );
+  vector< char > dName( idx->read< uint32_t >() );
   if( dName.size() > 0 )
   {
-    idx.read( &dName.front(), dName.size() );
+    idx->read( &dName.front(), dName.size() );
     dictionaryName = string( &dName.front(), dName.size() );
   }
 
-  vector< char > sName( idx.read< uint32_t >() );
+  vector< char > sName( idx->read< uint32_t >() );
   if( sName.size() > 0 )
   {
-    idx.read( &sName.front(), sName.size() );
+    idx->read( &sName.front(), sName.size() );
     preferredSoundDictionary = string( &sName.front(), sName.size() );
   }
 
@@ -412,8 +414,8 @@ void DslDictionary::doDeferredInit()
       // Don't lock index file - no one should be working with it until
       // the init is complete.
       //Mutex::Lock _( idxMutex );
-
-      chunks = new ChunkedStorage::Reader( idx, idxHeader.chunksOffset );
+      sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+      ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
 
       // Open the .dsl file
 
@@ -430,7 +432,7 @@ void DslDictionary::doDeferredInit()
       {
         vector< char > chunk;
 
-        char * abrvBlock = chunks->getBlock( idxHeader.abrvAddress, chunk );
+        char * abrvBlock = chunks.getBlock( idxHeader.abrvAddress, chunk );
 
         uint32_t total;
         memcpy( &total, abrvBlock, sizeof( uint32_t ) );
@@ -556,8 +558,9 @@ void DslDictionary::loadArticle( uint32_t address,
 
     {
       Mutex::Lock _( idxMutex );
-
-      articleProps = chunks->getBlock( address, chunk );
+      sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+      ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
+      articleProps = chunks.getBlock( address, chunk );
     }
 
     uint32_t articleOffset, articleSize;
@@ -1304,7 +1307,9 @@ void DslDictionary::getArticleText( uint32_t articleAddress, QString & headword,
 
   {
     Mutex::Lock _( idxMutex );
-    articleProps = chunks->getBlock( articleAddress, chunk );
+    sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+    ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
+    articleProps = chunks.getBlock( articleAddress, chunk );
   }
 
   uint32_t articleOffset, articleSize;

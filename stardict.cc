@@ -134,11 +134,12 @@ bool indexIsOldOrBad( string const & indexFile )
 class StardictDictionary: public BtreeIndexing::BtreeDictionary
 {
   Mutex idxMutex;
-  File::Class idx;
+//  File::Class idx;
   IdxHeader idxHeader;
   string bookName;
+  string _indexFile;
   string sameTypeSequence;
-  ChunkedStorage::Reader chunks;
+//  ChunkedStorage::Reader chunks;
   Mutex dzMutex;
   dictData * dz;
   Mutex resourceZipMutex;
@@ -233,14 +234,14 @@ StardictDictionary::StardictDictionary( string const & id,
                                         string const & indexFile,
                                         vector< string > const & dictionaryFiles ):
   BtreeDictionary( id, dictionaryFiles ),
-  idx( indexFile, "rb" ),
-  idxHeader( idx.read< IdxHeader >() ),
-  bookName( loadString( idxHeader.bookNameSize ) ),
-  sameTypeSequence( loadString( idxHeader.sameTypeSequenceSize ) ),
-  chunks( idx, idxHeader.chunksOffset )
+  _indexFile(indexFile)
 {
   // Open the .dict file
-
+  sptr<File::Class> idx = new File::Class( indexFile, "rb" );
+  bookName= loadString( idxHeader.bookNameSize ) ;
+  sameTypeSequence= loadString( idxHeader.sameTypeSequenceSize ) ;
+  idxHeader= idx->read< IdxHeader >() ;
+  ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
   DZ_ERRORS error;
   dz = dict_data_open( dictionaryFiles[ 2 ].c_str(), &error, 0 );
 
@@ -314,8 +315,8 @@ string StardictDictionary::loadString( size_t size )
     return string();
 
   vector< char > data( size );
-
-  idx.read( &data.front(), data.size() );
+  sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+  idx->read( &data.front(), data.size() );
 
   return string( &data.front(), data.size() );
 }
@@ -327,7 +328,8 @@ void StardictDictionary::getArticleProps( uint32_t articleAddress,
   vector< char > chunk;
 
   Mutex::Lock _( idxMutex );
-
+  sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+  ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
   char * articleData = chunks.getBlock( articleAddress, chunk );
 
   memcpy( &offset, articleData, sizeof( uint32_t ) );

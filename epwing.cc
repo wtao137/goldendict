@@ -81,10 +81,11 @@ bool indexIsOldOrBad( string const & indexFile )
 class EpwingDictionary: public BtreeIndexing::BtreeDictionary
 {
   Mutex idxMutex;
-  File::Class idx;
+//  File::Class idx;
   IdxHeader idxHeader;
   string bookName;
-  ChunkedStorage::Reader chunks;
+  string _indexFile;
+//  ChunkedStorage::Reader chunks;
   Epwing::Book::EpwingBook eBook;
   QString cacheDirectory;
 
@@ -198,15 +199,16 @@ EpwingDictionary::EpwingDictionary( string const & id,
                                     vector< string > const & dictionaryFiles,
                                     int subBook ):
   BtreeDictionary( id, dictionaryFiles ),
-  idx( indexFile, "rb" ),
-  idxHeader( idx.read< IdxHeader >() ),
-  chunks( idx, idxHeader.chunksOffset )
+  _indexFile(indexFile)
 {
   vector< char > data( idxHeader.nameSize );
-  idx.seek( sizeof( idxHeader ) );
+  sptr<File::Class> idx = new File::Class( indexFile, "rb" );
+  idxHeader= idx->read< IdxHeader >() ;
+//  ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
+  idx->seek( sizeof( idxHeader ) );
   if( data.size() > 0 )
   {
-    idx.read( &data.front(), idxHeader.nameSize );
+    idx->read( &data.front(), idxHeader.nameSize );
     bookName = string( &data.front(), idxHeader.nameSize );
   }
 
@@ -294,6 +296,8 @@ void EpwingDictionary::loadArticle( quint32 address,
 
   {
     Mutex::Lock _( idxMutex );
+    sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+    ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
     articleProps = chunks.getBlock( address, chunk );
   }
 
@@ -405,6 +409,8 @@ void EpwingDictionary::getArticleText( uint32_t articleAddress, QString & headwo
 
   {
     Mutex::Lock _( idxMutex );
+    sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+    ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
     articleProps = chunks.getBlock( articleAddress, chunk );
   }
 

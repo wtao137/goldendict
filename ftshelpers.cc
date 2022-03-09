@@ -1137,12 +1137,12 @@ void FTSResultsRequest::run()
       BtreeIndexing::BtreeIndex ftsIndex;
       sptr< ChunkedStorage::Reader > chunks;
 
-      File::Class ftsIdx( dict.ftsIndexName(), "rb" );
+      sptr<File::Class> ftsIdx = new File::Class( dict.ftsIndexName(), "rb" );
 
       {
         Mutex::Lock _( dict.getFtsMutex() );
 
-        ftsIdxHeader = ftsIdx.read< FtsIdxHeader >();
+        ftsIdxHeader = ftsIdx->read< FtsIdxHeader >();
 
         wordsInIndex = ftsIdxHeader.wordCount;
 

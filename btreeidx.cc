@@ -51,7 +51,7 @@ enum
 };
 
 BtreeIndex::BtreeIndex():
-  idxFile( 0 ), rootNodeLoaded( false )
+  idxFile( nullptr ), rootNodeLoaded( false )
 {
 }
 
@@ -68,13 +68,12 @@ string const & BtreeDictionary::ensureInitDone()
   return empty;
 }
 
-void BtreeIndex::openIndex( IndexInfo const & indexInfo,
-                            File::Class & file, Mutex & mutex )
+void BtreeIndex::openIndex( IndexInfo const & indexInfo, sptr<File::Class>   file, Mutex & mutex )
 {
   indexNodeSize = indexInfo.btreeMaxElements;
-  rootOffset = indexInfo.rootOffset;
+  rootOffset    = indexInfo.rootOffset;
 
-  idxFile = &file;
+  idxFile      = file;
   idxFileMutex = &mutex;
 
   rootNodeLoaded = false;

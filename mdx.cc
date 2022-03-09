@@ -109,13 +109,13 @@ class IndexedMdd: public BtreeIndexing::BtreeIndex
 {
   Mutex & idxMutex;
   Mutex fileMutex;
-  ChunkedStorage::Reader & chunks;
+  sptr<ChunkedStorage::Reader>  chunks;
   QFile mddFile;
   bool isFileOpen;
 
 public:
 
-  IndexedMdd( Mutex & idxMutex, ChunkedStorage::Reader & chunks ):
+  IndexedMdd( Mutex & idxMutex, sptr<ChunkedStorage::Reader> & chunks ):
     idxMutex( idxMutex ),
     chunks( chunks ),
     isFileOpen( false )
@@ -162,7 +162,7 @@ public:
     MdictParser::RecordInfo indexEntry;
     vector< char > chunk;
     Mutex::Lock _( idxMutex );
-    const char * indexEntryPtr = chunks.getBlock( links[ 0 ].articleOffset, chunk );
+    const char * indexEntryPtr = chunks->getBlock( links[ 0 ].articleOffset, chunk );
     memcpy( &indexEntry, indexEntryPtr, sizeof( indexEntry ) );
 
     //corrupted file or broken entry.
@@ -194,11 +194,12 @@ public:
 class MdxDictionary: public BtreeIndexing::BtreeDictionary
 {
   Mutex idxMutex;
-  File::Class idx;
+  //File::Class * _idx;
   IdxHeader idxHeader;
+  string _indexFile;
   string dictionaryName;
   string encoding;
-  ChunkedStorage::Reader chunks;
+//  ChunkedStorage::Reader _chunks;
   QFile dictFile;
   vector< sptr< IndexedMdd > > mddResources;
   MdictParser::StyleSheets styleSheets;
@@ -304,11 +305,14 @@ private:
 MdxDictionary::MdxDictionary( string const & id, string const & indexFile,
                               vector<string> const & dictionaryFiles ):
   BtreeDictionary( id, dictionaryFiles ),
-  idx( indexFile, "rb" ),
-  idxHeader( idx.read< IdxHeader >() ),
-  chunks( idx, idxHeader.chunksOffset ),
+
   deferredInitRunnableStarted( false )
 {
+  File::Class idx( indexFile, "rb" );
+
+  idxHeader =idx.read< IdxHeader >();
+  _indexFile=indexFile;
+//  chunks=new ChunkedStorage::Reader( idx, idxHeader.chunksOffset );
   // Read the dictionary's name
   idx.seek( sizeof( idxHeader ) );
   size_t len = idx.read< uint32_t >();
@@ -422,22 +426,24 @@ void MdxDictionary::doDeferredInit()
 
     try
     {
+      sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+
       // Retrieve stylesheets
-      idx.seek( idxHeader.styleSheetAddress );
+      idx->seek( idxHeader.styleSheetAddress );
       for ( uint32_t i = 0; i < idxHeader.styleSheetCount; i++ )
       {
-        qint32 key = idx.read< qint32 >();
+        qint32 key = idx->read< qint32 >();
         vector< char > buf;
         quint32 sz;
 
-        sz = idx.read< quint32 >();
+        sz = idx->read< quint32 >();
         buf.resize( sz );
-        idx.read( &buf.front(), sz );
+        idx->read( &buf.front(), sz );
         QString styleBegin = QString::fromUtf8( buf.data() );
 
-        sz = idx.read< quint32 >();
+        sz = idx->read< quint32 >();
         buf.resize( sz );
-        idx.read( &buf.front(), sz );
+        idx->read( &buf.front(), sz );
         QString styleEnd = QString::fromUtf8( buf.data() );
 
         styleSheets[ key ] = pair<QString, QString>( styleBegin, styleEnd );
@@ -449,19 +455,21 @@ void MdxDictionary::doDeferredInit()
 
       vector< string > mddFileNames;
       vector< IndexInfo > mddIndexInfos;
-      idx.seek( idxHeader.mddIndexInfosOffset );
+      idx->seek( idxHeader.mddIndexInfosOffset );
       for ( uint32_t i = 0; i < idxHeader.mddIndexInfosCount; i++ )
       {
-        quint32 sz = idx.read< quint32 >();
+        quint32 sz = idx->read< quint32 >();
         vector< char > buf( sz );
-        idx.read( &buf.front(), sz );
-        uint32_t btreeMaxElements = idx.read<uint32_t>();
-        uint32_t rootOffset = idx.read<uint32_t>();
+        idx->read( &buf.front(), sz );
+        uint32_t btreeMaxElements = idx->read<uint32_t>();
+        uint32_t rootOffset = idx->read<uint32_t>();
         mddFileNames.push_back( string( &buf.front() ) );
         mddIndexInfos.push_back( IndexInfo( btreeMaxElements, rootOffset ) );
       }
 
       vector< string > const dictFiles = getDictionaryFilenames();
+      sptr< ChunkedStorage::Reader > chunks = new ChunkedStorage::Reader( idx, idxHeader.chunksOffset );
+      
       for ( uint32_t i = 1; i < dictFiles.size() && i < mddFileNames.size() + 1; i++ )
       {
         QFileInfo fi( QString::fromUtf8( dictFiles[ i ].c_str() ) );
@@ -948,6 +956,8 @@ const QString & MdxDictionary::getDescription()
   else
   {
     Mutex::Lock _( idxMutex );
+    sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+    ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
     vector< char > chunk;
     char * dictDescription = chunks.getBlock( idxHeader.descriptionAddress, chunk );
     string str( dictDescription );
@@ -984,6 +994,8 @@ void MdxDictionary::loadArticle( uint32_t offset, string & articleText, bool noF
 
   // Load record info from index
   MdictParser::RecordInfo recordInfo;
+  sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+  ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
   char * pRecordInfo = chunks.getBlock( offset, chunk );
   memcpy( &recordInfo, pRecordInfo, sizeof( recordInfo ) );
 

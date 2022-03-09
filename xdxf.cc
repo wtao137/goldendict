@@ -128,9 +128,10 @@ bool indexIsOldOrBad( string const & indexFile )
 class XdxfDictionary: public BtreeIndexing::BtreeDictionary
 {
   Mutex idxMutex;
-  File::Class idx;
+  //File::Class idx;
+  string _indexFile;
   IdxHeader idxHeader;
-  sptr< ChunkedStorage::Reader > chunks;
+  //sptr< ChunkedStorage::Reader > chunks;
   Mutex dzMutex;
   dictData * dz;
   Mutex resourceZipMutex;
@@ -214,18 +215,18 @@ XdxfDictionary::XdxfDictionary( string const & id,
                                 string const & indexFile,
                                 vector< string > const & dictionaryFiles ):
   BtreeDictionary( id, dictionaryFiles ),
-  idx( indexFile, "rb" ),
-  idxHeader( idx.read< IdxHeader >() )
+  _indexFile(indexFile)
 {
   // Read the dictionary name
-
-  chunks = new ChunkedStorage::Reader( idx, idxHeader.chunksOffset );
+  sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+  idxHeader= idx->read< IdxHeader >() ;
+  ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
 
   if ( idxHeader.nameSize )
   {
     vector< char > chunk;
 
-    dictionaryName = string( chunks->getBlock( idxHeader.nameAddress, chunk ),
+    dictionaryName = string( chunks.getBlock( idxHeader.nameAddress, chunk ),
                              idxHeader.nameSize );
   }
 
@@ -244,7 +245,7 @@ XdxfDictionary::XdxfDictionary( string const & id,
   {
     vector< char > chunk;
 
-    char * abrvBlock = chunks->getBlock( idxHeader.abrvAddress, chunk );
+    char * abrvBlock = chunks.getBlock( idxHeader.abrvAddress, chunk );
 
     uint32_t total;
     memcpy( &total, abrvBlock, sizeof( uint32_t ) );
@@ -358,7 +359,9 @@ QString const& XdxfDictionary::getDescription()
             char * descr;
             {
               Mutex::Lock _( idxMutex );
-              descr = chunks->getBlock( idxHeader.descriptionAddress, chunk );
+              sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+              ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
+              descr = chunks.getBlock( idxHeader.descriptionAddress, chunk );
             }
             dictionaryDescription = QString::fromUtf8( descr, idxHeader.descriptionSize );
         }
@@ -639,8 +642,9 @@ void XdxfDictionary::loadArticle( uint32_t address,
 
   {
     Mutex::Lock _( idxMutex );
-  
-    propertiesData = chunks->getBlock( address, chunk );
+    sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+    ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
+    propertiesData = chunks.getBlock( address, chunk );
   }
 
   if ( &chunk.front() + chunk.size() - propertiesData < 9 )

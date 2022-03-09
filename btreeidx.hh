@@ -77,7 +77,7 @@ public:
   /// Opens the index. The file reference is saved to be used for
   /// subsequent lookups.
   /// The mutex is the one to be locked when working with the file.
-  void openIndex( IndexInfo const &, File::Class &, Mutex & );
+  void openIndex( IndexInfo const &,sptr< File::Class > , Mutex & );
 
   /// Finds articles that match the given string. A case-insensitive search
   /// is performed.
@@ -135,7 +135,7 @@ protected:
 protected:
 
   Mutex * idxFileMutex;
-  File::Class * idxFile;
+  sptr<File::Class>  idxFile;
 
 private:
 
@@ -151,7 +151,6 @@ private:
 class BtreeDictionary: public Dictionary::Class, public BtreeIndex
 {
 public:
-
   BtreeDictionary( string const & id, vector< string > const & dictionaryFiles );
 
   /// Btree-indexed dictionaries are usually a good source for compound searches.

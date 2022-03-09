@@ -156,7 +156,8 @@ Entry::Entry( File::Class & f )
 class LsaDictionary: public BtreeIndexing::BtreeDictionary
 {
   Mutex idxMutex;
-  File::Class idx;
+  //File::Class idx;
+  string _indexFile;
   IdxHeader idxHeader;
 
 public:
@@ -203,11 +204,10 @@ LsaDictionary::LsaDictionary( string const & id,
                               string const & indexFile,
                               vector< string > const & dictionaryFiles ):
   BtreeDictionary( id, dictionaryFiles ),
-  idx( indexFile, "rb" ),
-  idxHeader( idx.read< IdxHeader >() )
+  _indexFile( indexFile)
 {
   // Initialize the index
-
+  sptr< File::Class > idx = new File::Class( _indexFile, "rb" );
   openIndex( IndexInfo( idxHeader.indexBtreeMaxElements,
                         idxHeader.indexRootOffset ),
              idx, idxMutex );

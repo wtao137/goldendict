@@ -9,6 +9,7 @@
 
 #include <vector>
 #include <stdint.h>
+#include "sptr.hh"
 
 /// A chunked compression storage. We use this for articles' bodies. The idea
 /// is to store data in a separately-compressed chunks, much like in dictzip,
@@ -72,12 +73,12 @@ private:
 class Reader
 {
   vector< uint32_t > offsets;
-  File::Class & file;
+  sptr<File::Class>  file;
 
 public:
   /// Creates reader by giving it a file to read from and the offset returned
   /// by Writer::finish().
-  Reader( File::Class &, uint32_t );
+  Reader( sptr<File::Class> & , uint32_t );
 
   /// Reads the block previously written by Writer, identified by its address.
   /// Uses the user-provided storage to load the entire chunk, and then to

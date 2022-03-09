@@ -226,9 +226,10 @@ class AardDictionary: public BtreeIndexing::BtreeDictionary
 {
     Mutex idxMutex;
     Mutex aardMutex;
-    File::Class idx;
+//    File::Class idx;
     IdxHeader idxHeader;
-    ChunkedStorage::Reader chunks;
+    string _indexFile;
+//    ChunkedStorage::Reader chunks;
     string dictionaryName;
     File::Class df;
 
@@ -301,18 +302,18 @@ AardDictionary::AardDictionary( string const & id,
                                 string const & indexFile,
                                 vector< string > const & dictionaryFiles ):
     BtreeDictionary( id, dictionaryFiles ),
-    idx( indexFile, "rb" ),
-    idxHeader( idx.read< IdxHeader >() ),
-    chunks( idx, idxHeader.chunksOffset ),
+    _indexFile(indexFile),
     df( dictionaryFiles[ 0 ], "rb" )
 {
     // Read dictionary name
-
-    idx.seek( sizeof( idxHeader ) );
-    vector< char > dName( idx.read< quint32 >() );
+    sptr<File::Class> idx = new File::Class( indexFile, "rb" );
+    idxHeader= idx->read< IdxHeader >() ;
+    ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
+    idx->seek( sizeof( idxHeader ) );
+    vector< char > dName( idx->read< quint32 >() );
     if( dName.size() )
     {
-        idx.read( &dName.front(), dName.size() );
+        idx->read( &dName.front(), dName.size() );
         dictionaryName = string( &dName.front(), dName.size() );
     }
 

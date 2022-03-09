@@ -5,7 +5,7 @@
 #define __SPTR_HH_INCLUDED__
 
 // using std::shared_ptr
-
+#include <memory>
 
 template< class T >
 class sptr: public std::shared_ptr< T >

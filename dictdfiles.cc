@@ -87,8 +87,10 @@ bool indexIsOldOrBad( string const & indexFile )
 class DictdDictionary: public BtreeIndexing::BtreeDictionary
 {
   Mutex idxMutex;
-  File::Class idx, indexFile; // The later is .index file
+  //File::Class idx, indexFile; // The later is .index file
   IdxHeader idxHeader;
+  string _indexFile;
+  string _dictFile;
   dictData * dz;
   string dictionaryName;
   Mutex indexFileMutex, dzMutex;
@@ -150,18 +152,18 @@ DictdDictionary::DictdDictionary( string const & id,
                                   string const & indexFile,
                                   vector< string > const & dictionaryFiles ):
   BtreeDictionary( id, dictionaryFiles ),
-  idx( indexFile, "rb" ),
-  indexFile( dictionaryFiles[ 0 ], "rb" ),
-  idxHeader( idx.read< IdxHeader >() )
+  _indexFile( indexFile),
+  _dictFile( dictionaryFiles[ 0 ] )
 {
-
+  sptr< File::Class > idx = new File::Class( indexFile, "rb" );
+  idxHeader               = idx->read< IdxHeader >();
   // Read the dictionary name
-  idx.seek( sizeof( idxHeader ) );
+  idx->seek( sizeof( idxHeader ) );
 
-  vector< char > dName( idx.read< uint32_t >() );
+  vector< char > dName( idx->read< uint32_t >() );
   if( dName.size() > 0 )
   {
-    idx.read( &dName.front(), dName.size() );
+    idx->read( &dName.front(), dName.size() );
     dictionaryName = string( &dName.front(), dName.size() );
   }
 
@@ -284,7 +286,7 @@ sptr< Dictionary::DataRequest > DictdDictionary::getArticle( wstring const & wor
       wordCaseFolded = Folding::applyDiacriticsOnly( wordCaseFolded );
 
     char buf[ 16384 ];
-
+    sptr< File::Class > indexFile = new File::Class( _dictFile, "rb" );
     for( unsigned x = 0; x < chain.size(); ++x )
     {
       if ( articlesIncluded.find( chain[ x ].articleOffset ) != articlesIncluded.end() )
@@ -294,9 +296,10 @@ sptr< Dictionary::DataRequest > DictdDictionary::getArticle( wstring const & wor
 
       {
         Mutex::Lock _( indexFileMutex );
-        indexFile.seek( chain[ x ].articleOffset );
+        
+        indexFile->seek( chain[ x ].articleOffset );
 
-        if ( !indexFile.gets( buf, sizeof( buf ), true ) )
+        if ( !indexFile->gets( buf, sizeof( buf ), true ) )
           throw exFailedToReadLineFromIndex();
       }
 
@@ -498,9 +501,10 @@ void DictdDictionary::getArticleText( uint32_t articleAddress, QString & headwor
     char buf[ 16384 ];
     {
       Mutex::Lock _( indexFileMutex );
-      indexFile.seek( articleAddress );
+      sptr< File::Class > indexFile = new File::Class( _dictFile, "rb" );
+      indexFile->seek( articleAddress );
 
-      if ( !indexFile.gets( buf, sizeof( buf ), true ) )
+      if ( !indexFile->gets( buf, sizeof( buf ), true ) )
         throw exFailedToReadLineFromIndex();
     }
 

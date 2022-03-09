@@ -197,10 +197,11 @@ namespace
   class BglDictionary: public BtreeIndexing::BtreeDictionary
   {
     Mutex idxMutex;
-    File::Class idx;
+//    File::Class idx;
+    string _indexFile;
     IdxHeader idxHeader;
     string dictionaryName;
-    ChunkedStorage::Reader chunks;
+//    ChunkedStorage::Reader chunks;
 
   public:
 
@@ -277,21 +278,22 @@ namespace
   BglDictionary::BglDictionary( string const & id, string const & indexFile,
                                 string const & dictionaryFile ):
     BtreeDictionary( id, vector< string >( 1, dictionaryFile ) ),
-    idx( indexFile, "rb" ),
-    idxHeader( idx.read< IdxHeader >() ),
-    chunks( idx, idxHeader.chunksOffset )
+    _indexFile(indexFile)
   {
-    idx.seek( sizeof( idxHeader ) );
+    sptr<File::Class> idx = new File::Class( indexFile, "rb" );
+    idxHeader= idx->read< IdxHeader >() ;
+    ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
+    idx->seek( sizeof( idxHeader ) );
 
     // Read the dictionary's name
 
-    size_t len = idx.read< uint32_t >();
+    size_t len = idx->read< uint32_t >();
 
     if( len )
     {
       vector< char > nameBuf( len );
 
-      idx.read( &nameBuf.front(), len );
+      idx->read( &nameBuf.front(), len );
 
       dictionaryName = string( &nameBuf.front(), len );
     }
@@ -332,7 +334,8 @@ namespace
         vector< char > chunk;
 
         Mutex::Lock _( idxMutex );
-
+        sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+        ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
         char * iconData = chunks.getBlock( idxHeader.iconAddress, chunk );
 
         QImage img;
@@ -376,7 +379,8 @@ namespace
     vector< char > chunk;
 
     Mutex::Lock _( idxMutex );
-
+    sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+    ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
     char * articleData = chunks.getBlock( offset, chunk );
 
     headword = articleData;
@@ -399,6 +403,8 @@ namespace
     {
       Mutex::Lock _( idxMutex );
       vector< char > chunk;
+      sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+      ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
       char * dictDescription = chunks.getBlock( idxHeader.descriptionAddress, chunk );
       string str( dictDescription );
       if( !str.empty() )
@@ -968,7 +974,7 @@ class BglResourceRequest: public Dictionary::DataRequest
   friend class BglResourceRequestRunnable;
 
   Mutex & idxMutex;
-  File::Class & idx;
+  sptr<File::Class> & idx;
   uint32_t resourceListOffset, resourcesCount;
   string name;
 
@@ -978,7 +984,7 @@ class BglResourceRequest: public Dictionary::DataRequest
 public:
 
   BglResourceRequest( Mutex & idxMutex_,
-                      File::Class & idx_,
+                      sptr<File::Class> & idx_,
                       uint32_t resourceListOffset_,
                       uint32_t resourcesCount_,
                       string const & name_ ):
@@ -1027,34 +1033,34 @@ void BglResourceRequest::run()
 
   Mutex::Lock _( idxMutex );
 
-  idx.seek( resourceListOffset );
+  idx->seek( resourceListOffset );
 
   for( size_t count = resourcesCount; count--; )
   {
     if ( Utils::AtomicInt::loadAcquire( isCancelled ) )
       break;
 
-    vector< char > nameData( idx.read< uint32_t >() );
-    idx.read( &nameData.front(), nameData.size() );
+    vector< char > nameData( idx->read< uint32_t >() );
+    idx->read( &nameData.front(), nameData.size() );
 
     for( size_t x = nameData.size(); x--; )
       nameData[ x ] = tolower( nameData[ x ] );
 
-    uint32_t offset = idx.read< uint32_t >();
+    uint32_t offset = idx->read< uint32_t >();
 
     if ( string( &nameData.front(), nameData.size() ) == nameLowercased )
     {
       // We have a match.
 
-      idx.seek( offset );
+      idx->seek( offset );
 
       Mutex::Lock _( dataMutex );
 
-      data.resize( idx.read< uint32_t >() );
+      data.resize( idx->read< uint32_t >() );
 
-      vector< unsigned char > compressedData( idx.read< uint32_t >() );
+      vector< unsigned char > compressedData( idx->read< uint32_t >() );
 
-      idx.read( &compressedData.front(), compressedData.size() );
+      idx->read( &compressedData.front(), compressedData.size() );
 
       unsigned long decompressedLength = data.size();
 
@@ -1079,6 +1085,7 @@ void BglResourceRequest::run()
 sptr< Dictionary::DataRequest > BglDictionary::getResource( string const & name )
   
 {
+  sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
   return new BglResourceRequest( idxMutex, idx, idxHeader.resourceListOffset,
                                  idxHeader.resourcesCount, name );
 }

@@ -66,10 +66,11 @@ bool indexIsOldOrBad( string const & indexFile )
 class SoundDirDictionary: public BtreeIndexing::BtreeDictionary
 {
   string name;
+  string const _indexFile;
   Mutex idxMutex;
-  File::Class idx;
+//  File::Class idx;
   IdxHeader idxHeader;
-  ChunkedStorage::Reader chunks;
+//  ChunkedStorage::Reader chunks;
   QString iconFilename;
 
 public:
@@ -112,13 +113,15 @@ SoundDirDictionary::SoundDirDictionary( string const & id,
                                         QString const & iconFilename_ ):
   BtreeDictionary( id, dictionaryFiles ),
   name( name_ ),
-  idx( indexFile, "rb" ),
-  idxHeader( idx.read< IdxHeader >() ),
-  chunks( idx, idxHeader.chunksOffset ),
+  _indexFile(indexFile),
+  //idx( indexFile, "rb" ),
+//  idxHeader( idx.read< IdxHeader >() ),
+  //chunks( idx, idxHeader.chunksOffset ),
   iconFilename( iconFilename_ )
 {
   // Initialize the index
-
+  sptr< File::Class > idx = new File::Class( indexFile, "rb" );
+  idxHeader               = idx->read< IdxHeader >();
   openIndex( IndexInfo( idxHeader.indexBtreeMaxElements,
                         idxHeader.indexRootOffset ),
              idx, idxMutex );
@@ -187,7 +190,8 @@ sptr< Dictionary::DataRequest > SoundDirDictionary::getArticle( wstring const & 
   string displayedName;
   vector< char > chunk;
   char * nameBlock;
-
+  sptr<File::Class> idx=new File::Class( _indexFile, "rb" );
+  ChunkedStorage::Reader chunks(idx, idxHeader.chunksOffset );
   result += "<table class=\"lsa_play\">";
   for( i = mainArticles.begin(); i != mainArticles.end(); ++i )
   {
@@ -198,6 +202,7 @@ sptr< Dictionary::DataRequest > SoundDirDictionary::getArticle( wstring const & 
       try
       {
         Mutex::Lock _( idxMutex );
+
         nameBlock = chunks.getBlock( chain[ i->second ].articleOffset, chunk );
 
         if ( nameBlock >= &chunk.front() + chunk.size() )
@@ -321,7 +326,8 @@ sptr< Dictionary::DataRequest > SoundDirDictionary::getResource( string const & 
   try
   {
     Mutex::Lock _( idxMutex );
-
+    sptr<File::Class> idx=new File::Class( _indexFile, "rb" );
+    ChunkedStorage::Reader chunks(idx, idxHeader.chunksOffset );
     articleData = chunks.getBlock( articleOffset, chunk );
 
     if ( articleData >= &chunk.front() + chunk.size() )

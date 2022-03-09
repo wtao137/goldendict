@@ -4,6 +4,7 @@
 #include "chunkedstorage.hh"
 #include <zlib.h>
 #include <string.h>
+#include "sptr.hh"
 
 namespace ChunkedStorage {
 
@@ -114,15 +115,15 @@ uint32_t Writer::finish()
   return offset;
 }
 
-Reader::Reader( File::Class & f, uint32_t offset ): file( f )
+Reader::Reader( sptr<File::Class>  & f, uint32_t offset ): file( f )
 {
-  file.seek( offset );
+  file->seek( offset );
 
-  uint32_t size =  file.read< uint32_t >();
+  uint32_t size = file->read< uint32_t >();
   if ( size == 0 )
     return;
   offsets.resize( size );
-  file.read( &offsets.front(), offsets.size() * sizeof( uint32_t ) );
+  file->read( &offsets.front(), offsets.size() * sizeof( uint32_t ) );
 }
 
 char * Reader::getBlock( uint32_t address, vector< char > & chunk )
@@ -134,16 +135,16 @@ char * Reader::getBlock( uint32_t address, vector< char > & chunk )
 
   // Read and decompress the chunk
   {
-    file.seek( offsets[ chunkIdx ] );
+    file->seek( offsets[ chunkIdx ] );
 
-    uint32_t uncompressedSize = file.read< uint32_t >();
-    uint32_t compressedSize = file.read< uint32_t >();
+    uint32_t uncompressedSize = file->read< uint32_t >();
+    uint32_t compressedSize = file->read< uint32_t >();
 
     chunk.resize( uncompressedSize );
 
     vector< unsigned char > compressedData( compressedSize );
 
-    file.read( &compressedData.front(), compressedData.size() );
+    file->read( &compressedData.front(), compressedData.size() );
 
     unsigned long decompressedLength = chunk.size();
 

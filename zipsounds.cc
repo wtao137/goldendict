@@ -104,9 +104,10 @@ wstring stripExtension( string const & str )
 class ZipSoundsDictionary: public BtreeIndexing::BtreeDictionary
 {
   Mutex idxMutex;
-  File::Class idx;
+  string _indexFile;
+//  File::Class & idx;
   IdxHeader idxHeader;
-  sptr< ChunkedStorage::Reader > chunks;
+//  sptr< ChunkedStorage::Reader > chunks;
   IndexedZip zipsFile;
 
 public:
@@ -143,10 +144,12 @@ ZipSoundsDictionary::ZipSoundsDictionary( string const & id,
                                           string const & indexFile,
                                           vector< string > const & dictionaryFiles ):
   BtreeDictionary( id, dictionaryFiles ),
-  idx( indexFile, "rb" ),
-  idxHeader( idx.read< IdxHeader >() )
+  _indexFile(indexFile)
+
 {
-  chunks = new ChunkedStorage::Reader( idx, idxHeader.chunksOffset );
+  sptr<File::Class>idx = new File::Class( indexFile, "rb" );
+    idxHeader= idx->read< IdxHeader >() ;
+  ChunkedStorage::Reader  chunks( idx, idxHeader.chunksOffset );
 
   // Initialize the index
 
@@ -237,13 +240,15 @@ sptr< Dictionary::DataRequest > ZipSoundsDictionary::getArticle( wstring const &
 
   vector< char > chunk;
   char * nameBlock;
-
+  sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+  ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
   for( i = mainArticles.begin(); i != mainArticles.end(); ++i )
   {
     try
     {
       Mutex::Lock _( idxMutex );
-      nameBlock = chunks->getBlock( i->second, chunk );
+
+      nameBlock = chunks.getBlock( i->second, chunk );
 
       if ( nameBlock >= &chunk.front() + chunk.size() )
       {
@@ -289,7 +294,7 @@ sptr< Dictionary::DataRequest > ZipSoundsDictionary::getArticle( wstring const &
     try
     {
       Mutex::Lock _( idxMutex );
-      nameBlock = chunks->getBlock( i->second, chunk );
+      nameBlock = chunks.getBlock( i->second, chunk );
 
       if ( nameBlock >= &chunk.front() + chunk.size() )
       {
@@ -357,10 +362,12 @@ sptr< Dictionary::DataRequest > ZipSoundsDictionary::getResource( string const &
   // Find sound
 
   uint32_t dataOffset = 0;
+  sptr<File::Class> idx = new File::Class( _indexFile, "rb" );
+  ChunkedStorage::Reader chunks( idx, idxHeader.chunksOffset );
   for( int x = chain.size() - 1; x >= 0 ; x-- )
   {
     vector< char > chunk;
-    char * nameBlock = chunks->getBlock( chain[ x ].articleOffset, chunk );
+    char * nameBlock = chunks.getBlock( chain[ x ].articleOffset, chunk );
 
     uint16_t sz;
     memcpy( &sz, nameBlock, sizeof( uint16_t ) );
