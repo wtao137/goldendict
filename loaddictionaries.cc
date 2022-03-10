@@ -77,9 +77,12 @@ void LoadDictionaries::run()
 {
   try
   {
+    qDebug() << "[ED]"
+             << "load dicts starts";
     for( Config::Paths::const_iterator i = paths.begin(); i != paths.end(); ++i )
       handlePath( *i );
-
+    qDebug() << "[ED]"
+             << "load dicts handlepath end";
     // Make soundDirs
     {
       vector< sptr< Dictionary::Class > > soundDirDictionaries =
@@ -97,7 +100,8 @@ void LoadDictionaries::run()
       dictionaries.insert( dictionaries.end(), hunspellDictionaries.begin(),
                            hunspellDictionaries.end() );
     }
-
+    qDebug() << "[ED]"
+             << "load dicts end";
     exceptionText.clear();
   }
   catch( std::exception & e )

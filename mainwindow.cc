@@ -2045,6 +2045,8 @@ void MainWindow::updatePronounceAvailability()
 
 void MainWindow::editDictionaries( unsigned editDictionaryGroup )
 {
+  qDebug() << "[ED]"
+           << "start edit";
   hotkeyWrapper.reset(); // No hotkeys while we're editing dictionaries
   scanPopup.reset(); // No scan popup either. No one should use dictionaries.
   closeHeadwordsDialog();
@@ -2056,10 +2058,12 @@ void MainWindow::editDictionaries( unsigned editDictionaryGroup )
   hideGDHelp();
 
   { // Limit existence of newCfg
-
+    qDebug() << "[ED]"
+             << "dict dialog init";
   Config::Class newCfg = cfg;
   EditDictionaries dicts( this, newCfg, dictionaries, groupInstances, dictNetMgr );
-
+  qDebug() << "[ED]"
+           << "dict dialog end";
   connect( &dicts, SIGNAL( showDictionaryInfo( QString const & ) ),
            this, SLOT( showDictionaryInfo( QString const & ) ) );
 
@@ -2075,6 +2079,8 @@ void MainWindow::editDictionaries( unsigned editDictionaryGroup )
 
   if ( dicts.areDictionariesChanged() || dicts.areGroupsChanged() )
   {
+    qDebug() << "[ED]"
+             << "fts stop indexing";
     ftsIndexing.stopIndexing();
     ftsIndexing.clearDictionaries();
     // Set muted dictionaries from old groups
@@ -2105,9 +2111,12 @@ void MainWindow::editDictionaries( unsigned editDictionaryGroup )
       dictionaries[ x ]->setFTSParameters( cfg.preferences.fts );
       dictionaries[ x ]->setSynonymSearchEnabled( cfg.preferences.synonymSearchEnabled );
     }
-
+    qDebug() << "[ED]"
+             << "fts do indexing...";
     ftsIndexing.setDictionaries( dictionaries );
     ftsIndexing.doIndexing();
+    qDebug() << "[ED]"
+             << "fts stop indexing end";
   }
 
   }
