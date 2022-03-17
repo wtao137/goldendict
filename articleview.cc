@@ -373,6 +373,9 @@ ArticleView::ArticleView( QWidget * parent, ArticleNetworkAccessManager & nm, Au
   connect(GlobalBroadcaster::instance(), SIGNAL( emitDictIds(ActiveDictIds)), this,
           SLOT(setActiveDictIds(ActiveDictIds)));
 
+  connect(GlobalBroadcaster::instance(), SIGNAL( audioLink(AudioLink)), this,
+           SLOT(autoPronunce(AudioLink)));
+
   channel = new QWebChannel(ui.definition->page());
   agent = new ArticleViewAgent(this);
   attachWebChannelToHtml();
@@ -404,6 +407,7 @@ void ArticleView::showDefinition( Config::InputPhrase const & phrase, unsigned g
                                   Contexts const & contexts_ )
 {
   currentWord = phrase.phrase.trimmed();
+  soundPlayed = false;
   currentActiveDictIds.clear();
   // first, let's stop the player
   audioPlayer->stop();
@@ -482,6 +486,7 @@ void ArticleView::showDefinition( QString const & word, QStringList const & dict
   if( dictIDs.isEmpty() )
     return;
   currentWord = word.trimmed();
+  soundPlayed = false;
   // first, let's stop the player
   audioPlayer->stop();
 
@@ -2075,6 +2080,7 @@ void ArticleView::resourceDownloadFinished()
           // Audio data
           connect( audioPlayer.data(), SIGNAL( error( QString ) ), this, SLOT( audioPlayerError( QString ) ), Qt::UniqueConnection );
           QString errorMessage = audioPlayer->play( data.data(), data.size() );
+          soundPlayed = true;
           if( !errorMessage.isEmpty() )
             QMessageBox::critical( this, "GoldenDict", tr( "Failed to play sound file: %1" ).arg( errorMessage ) );
         }
@@ -2608,6 +2614,16 @@ void ArticleView::setActiveDictIds(ActiveDictIds ad) {
     currentActiveDictIds << ad.dictIds;
     currentActiveDictIds.removeDuplicates();
     emit updateFoundInDictsList();
+  }
+}
+
+void ArticleView::autoPronunce(AudioLink al) {
+  if (!soundPlayed && cfg.preferences.pronounceOnLoadMain ) {
+    if (!al.audioLink.isEmpty())
+    {
+//      soundPlayed=true;
+      openLink(QUrl(al.audioLink), ui.definition->url());
+    }
   }
 }
 

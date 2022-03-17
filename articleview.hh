@@ -67,6 +67,8 @@ class ArticleView: public QFrame
   /// current searching word.
   QString currentWord;
 
+  bool soundPlayed;
+
   /// current active dict id list;
   QStringList currentActiveDictIds;
 
@@ -353,6 +355,7 @@ private slots:
   void inspect();
 
   void setActiveDictIds(ActiveDictIds);
+  void autoPronunce(AudioLink al);
 
 private:
 

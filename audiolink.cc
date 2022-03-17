@@ -2,10 +2,12 @@
  * Part of GoldenDict. Licensed under GPLv3 or later, see the LICENSE file */
 
 #include "audiolink.hh"
-
+#include "globalbroadcaster.h"
 std::string addAudioLink( std::string const & url,
                           std::string const & dictionaryId )
 {
+  std::string trimmedUrl=url.substr(1,url.length()-2);
+  GlobalBroadcaster::instance()->emitAudioLink(AudioLink{QString::fromStdString(dictionaryId),QString::fromStdString(trimmedUrl)});
     return std::string( "<script type=\"text/javascript\">" +
                         makeAudioLinkScript( url, dictionaryId ) +
                         "</script>" );

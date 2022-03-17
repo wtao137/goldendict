@@ -1885,8 +1885,8 @@ void MainWindow::pageLoaded( ArticleView * view )
 
   updatePronounceAvailability();
 
-  if ( cfg.preferences.pronounceOnLoadMain )
-    pronounce( view );
+//  if ( cfg.preferences.pronounceOnLoadMain )
+//    pronounce( view );
 
   //updateFoundInDictsList();
 }
