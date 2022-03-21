@@ -10,6 +10,11 @@ WebUrlRequestInterceptor::WebUrlRequestInterceptor(QObject *p)
 void WebUrlRequestInterceptor::interceptRequest( QWebEngineUrlRequestInfo &info) {
   if (QWebEngineUrlRequestInfo::NavigationTypeLink == info.navigationType() && info.resourceType() == QWebEngineUrlRequestInfo::ResourceTypeMainFrame) {
     emit linkClicked(info.requestUrl());
+    qDebug() << "interceptor [clicked]" << info.resourceType() << info.navigationType() << info.requestUrl();
     info.block(true);
+  }
+  else
+  {
+    qDebug() << "interceptor" << info.resourceType()<<info.navigationType()<<info.requestUrl();
   }
 }
