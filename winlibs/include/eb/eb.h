@@ -33,11 +33,9 @@
 extern "C" {
 #endif
 
-#ifdef EB_BUILD_LIBRARY
+
 #include "defs.h"
-#else
-#include <eb/defs.h>
-#endif
+
 
 #include <stdarg.h>
 
@@ -139,6 +137,13 @@ EB_Error_Code eb_subbook_directory2(EB_Book *book,
     EB_Subbook_Code subbook_code, char *directory);
 EB_Error_Code eb_set_subbook(EB_Book *book, EB_Subbook_Code subbook_code);
 void eb_unset_subbook(EB_Book *book);
+
+/* utf8.c */
+char *eb_normalize_utf8 (EB_Book *book, int code);
+EB_Error_Code eb_load_utf8_table (EB_Book *book);
+void eb_initialize_utf8_table (EB_Book *book);
+void eb_finalize_utf8_table (EB_Book *book);
+int eb_read_utf8 (const char *buffer, int *code);
 
 /* word.c */
 int eb_have_word_search(EB_Book *book);

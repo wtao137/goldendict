@@ -701,7 +701,7 @@ QString EpwingBook::getText( int page, int offset, bool text_only )
 
   QByteArray buf;
   char buffer[ TextBufferSize + 1 ];
-  ssize_t buffer_length;
+  size_t buffer_length;
 
   EContainer container( this, text_only );
 
@@ -754,7 +754,7 @@ void EpwingBook::getReferencesFromText( int page, int offset )
   }
 
   char buffer[ TextBufferSize + 1 ];
-  ssize_t buffer_length;
+  size_t buffer_length;
 
   EContainer container( this, false );
 
@@ -962,7 +962,7 @@ bool EpwingBook::readHeadword( EB_Position const& pos,
                                bool text_only )
 {
   EContainer container( this, text_only );
-  ssize_t head_length;
+  size_t head_length;
 
   EB_Position newPos = pos;
 
@@ -1089,7 +1089,7 @@ void EpwingBook::getArticle( QString & headword, QString & articleText,
   }
 
   EContainer container( this, text_only );
-  ssize_t length;
+  size_t length;
 
   prepareToRead();
 
@@ -1232,7 +1232,7 @@ void EpwingBook::finalizeText( QString & text )
 
     eb_seek_text( &book, &ebpos );
 
-    ssize_t length;
+    size_t length;
     EB_Error_Code ret = eb_read_heading( &book, &appendix, &hookSet, &cont,
                                          TextBufferSize, buf, &length );
     if( ret == EB_SUCCESS )
@@ -1318,7 +1318,7 @@ QByteArray EpwingBook::handleColorImage( EB_Hook_Code code,
     {
       QByteArray buffer;
       buffer.resize( BinaryBufferSize );
-      ssize_t length;
+      size_t length;
 
       for( ; ; )
       {
@@ -1401,7 +1401,7 @@ QByteArray EpwingBook::handleMonoImage( EB_Hook_Code code,
     {
       QByteArray buffer;
       buffer.resize( BinaryBufferSize );
-      ssize_t length;
+      size_t length;
 
       for( ; ; )
       {
@@ -1477,7 +1477,7 @@ QByteArray EpwingBook::handleWave( EB_Hook_Code code, const unsigned int * argv 
     {
       QByteArray buffer;
       buffer.resize( BinaryBufferSize );
-      ssize_t length;
+      size_t length;
 
       for( ; ; )
       {
@@ -1551,7 +1551,7 @@ QByteArray EpwingBook::handleMpeg( EB_Hook_Code code, const unsigned int * argv 
     {
       QByteArray buffer;
       buffer.resize( BinaryBufferSize );
-      ssize_t length;
+      size_t length;
 
       for( ; ; )
       {
