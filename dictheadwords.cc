@@ -51,8 +51,8 @@ DictHeadwords::DictHeadwords( QWidget *parent, Config::Class & cfg_,
 
   ui.matchCase->setChecked( cfg.headwordsDialog.matchCase );
 
-  model = new QStringListModel( this );
-  model->setStringList( headers );
+  model = new HeadwordListModel( this );
+//  model->setStringList( headers );
 
   proxy = new QSortFilterProxyModel( this );
 
@@ -134,16 +134,12 @@ void DictHeadwords::setup( Dictionary::Class *dict_ )
 
   setWindowTitle( QString::fromUtf8( dict->getName().c_str() ) );
 
-  headers.clear();
-  model->setStringList( headers );
-
-  dict->getHeadwords( headers );
-  model->setStringList( headers );
-
+  auto size = dict->getWordCount();
+  model->setDict(dict);
   proxy->sort( 0 );
   filterChanged();
 
-  if( headers.size() > AUTO_APPLY_LIMIT )
+  if( size > AUTO_APPLY_LIMIT )
   {
     cfg.headwordsDialog.autoApply = ui.autoApply->isChecked();
     ui.autoApply->setChecked( false );
