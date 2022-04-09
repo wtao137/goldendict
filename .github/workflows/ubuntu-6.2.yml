@@ -36,18 +36,29 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        qt_ver: [6.2.4]
+        qt_ver: [6.3.0]
         qt_arch: [gcc_64]
     env:
       version: 22.4.7-alpha
     steps:
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.9'
+     
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
           version: ${{ matrix.qt_ver }}
           arch: ${{ matrix.qt_arch }}
           cached: 'false'
-          modules: qtwebengine qtwebchannel qtpositioning qt5compat qtmultimedia  qtimageformats
+          modules: qtwebengine qtwebchannel qtpositioning qt5compat qtmultimedia qtimageformats
+          setup-python: 'false'
+          py7zrversion: '==0.18.1'
+      - name: test aqt
+        run:  |
+          aqt list-qt linux desktop  
+          aqt list-qt linux desktop --arch 6.2.4
+          aqt list-qt linux desktop --modules 6.2.4 gcc_64               
       - name: ubuntu install thirdparty dependencies
         run: |
           sudo apt-get install git pkg-config build-essential 
@@ -72,10 +83,10 @@ jobs:
           qmake CONFIG+=release PREFIX=/usr   CONFIG+=zim_support   CONFIG+=chinese_conversion_support
           make INSTALL_ROOT=appdir -j`nproc` install; find appdir/
           
-          #copy missing shared dll to appdir.
-          mkdir -p appdir/usr/lib
-          cp  $(ldd appdir/usr/bin/goldendict | grep -o '\W/[^ ]*' |grep gobject ) appdir/usr/lib
-          cp  $(ldd appdir/usr/bin/goldendict | grep -o '\W/[^ ]*' |grep libpango ) appdir/usr/lib
+          # #copy missing shared dll to appdir.
+          # mkdir -p appdir/usr/lib
+          # cp  $(ldd appdir/usr/bin/goldendict | grep -o '\W/[^ ]*' |grep gobject ) appdir/usr/lib
+          # cp  $(ldd appdir/usr/bin/goldendict | grep -o '\W/[^ ]*' |grep libpango ) appdir/usr/lib
       - name: Build AppImage
         run: |
           wget -c -nv "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage"
