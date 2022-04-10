@@ -9,7 +9,8 @@
 #include <QKeyEvent>
 #include <QUrl>
 #include <QUrlQuery>
-
+#include <string>
+using std::string;
 namespace Utils
 {
 
@@ -24,6 +25,15 @@ inline QString rstrip(const QString &str) {
     }
   }
   return "";
+}
+
+inline string repeat(string s, int n) {
+  string repeat;
+
+  for (int i = 0; i < n; i++)
+    repeat += s;
+
+  return repeat;
 }
 
 inline bool isExternalLink(QUrl const &url) {

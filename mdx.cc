@@ -631,16 +631,20 @@ class MdxArticleRequest: public Dictionary::DataRequest
   QAtomicInt isCancelled;
   QSemaphore hasExited;
 
-public:
+  QRegularExpression divStartRe;
+  QRegularExpression divCloseRe;
 
+public:
   MdxArticleRequest( wstring const & word_,
                      vector< wstring > const & alts_,
                      MdxDictionary & dict_,
-                     bool ignoreDiacritics_ ):
+                     bool ignoreDiacritics_ ) :
     word( word_ ),
     alts( alts_ ),
     dict( dict_ ),
-    ignoreDiacritics( ignoreDiacritics_ )
+    ignoreDiacritics( ignoreDiacritics_ ),
+    divStartRe( "<\\s*div(\\s*\\/?\\s*|\\s+[^>]*)>", QRegularExpression::CaseInsensitiveOption ),
+    divCloseRe( "<\\/div>", QRegularExpression::CaseInsensitiveOption )
   {
     // QThreadPool::globalInstance()->start( new MdxArticleRequestRunnable( *this, hasExited ) );
     QThreadPool::globalInstance()->start( [ this ]() { this->run(); } );
@@ -760,8 +764,9 @@ void MdxArticleRequest::run()
     // leave the invalid tags at the mercy of modern browsers.(webengine chrome)
     // https://html.spec.whatwg.org/#an-introduction-to-error-handling-and-strange-cases-in-the-parser
     // https://en.wikipedia.org/wiki/Tag_soup#HTML5
-    string cleaner = "";
-    articleText += "<div class=\"mdict\">" + articleBody + cleaner + "</div>\n";
+    QString _ab = QString::fromStdString( articleBody );
+    int diff    = qMax( _ab.count( divStartRe ) - _ab.contains( divCloseRe ), 0 );
+    articleText += "<div class=\"mdict\">" + articleBody + Utils::repeat( "</div>" , diff ) + "</div>";
   }
 
   if ( !articleText.empty() )
