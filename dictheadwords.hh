@@ -30,7 +30,7 @@ public:
 protected:
   Config::Class & cfg;
   Dictionary::Class * dict;
-  QStringList headers;
+
   HeadwordListModel * model;
   QSortFilterProxyModel * proxy;
   WordListItemDelegate * delegate;

@@ -6,7 +6,24 @@ HeadwordListModel::HeadwordListModel(QObject *parent)
 
 int HeadwordListModel::rowCount(const QModelIndex &parent) const
 {
-    return parent.isValid() ? 0 : wordsCount.loadAcquire();
+    return parent.isValid() ? 0 : wordsCount;
+}
+
+int HeadwordListModel::totalCount() const{
+  return totalSize;
+}
+
+bool HeadwordListModel::isFinish() const{
+  return wordsCount >=totalSize;
+}
+
+QString HeadwordListModel::getRow(int row)
+{
+  return fileList.at(row);
+}
+
+int HeadwordListModel::wordCount() const{
+  return wordsCount;
 }
 
 QVariant HeadwordListModel::data(const QModelIndex &index, int role) const
@@ -23,31 +40,44 @@ QVariant HeadwordListModel::data(const QModelIndex &index, int role) const
     return QVariant();
 }
 
+bool HeadwordListModel::canFetchMore(const QModelIndex &parent) const
+{
+  if (parent.isValid())
+    return false;
+  return (wordsCount < totalSize);
+}
+
+void HeadwordListModel::fetchMore(const QModelIndex &parent)
+{
+  if (parent.isValid())
+    return;
+  int remainder = fileList.size() - wordsCount;
+  int itemsToFetch = qMin(100, remainder);
+
+  if (itemsToFetch <= 0)
+    return;
+
+  beginInsertRows(QModelIndex(), wordsCount, wordsCount + itemsToFetch - 1);
+
+  wordsCount+= itemsToFetch;
+
+  endInsertRows();
+
+  emit numberPopulated(wordsCount);
+}
+
 void HeadwordListModel::setDict(Dictionary::Class * dict){
   _dict = dict;
-  beginResetModel();
-  totalSize = dict->getWordCount();
+  totalSize = _dict->getWordCount();
   wordsCount=0;
-  endResetModel();
-  QThreadPool::globalInstance()->start(
-    [ this, dict ]()
-    {
-      dict->getHeadwords( fileList );
-      totalSize = fileList.size();
-    } );
   QThreadPool::globalInstance()->start(
     [ this ]()
     {
-      while(wordsCount<totalSize){
-        auto existedHeadsCount = fileList.size();
-        if( existedHeadsCount > wordsCount + 100 || existedHeadsCount>=totalSize)
-        {
-          beginInsertRows( QModelIndex(), wordsCount, existedHeadsCount - 1 );
-          wordsCount.storeRelaxed(existedHeadsCount);
-          endInsertRows();
-        }
-          QThread::msleep(0);
-      }
+      beginResetModel();
+      _dict->getHeadwords( fileList );
+      totalSize = fileList.size();
+      emit finished(totalSize);
+      endResetModel();
     } );
 
 }
