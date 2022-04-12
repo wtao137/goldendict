@@ -141,16 +141,6 @@ void DictHeadwords::setup( Dictionary::Class *dict_ )
   proxy->sort( 0 );
   filterChanged();
 
-//  QThreadPool::globalInstance()->start(
-//    [ this ]()
-//    {
-//      while(model->wordCount()==0){
-//        filterChanged() ;
-//        //QTimer::singleShot( 100, this, SLOT( filterChanged() ) );
-//        QThread::msleep(500);
-//      }
-//    } );
-
   if( size > AUTO_APPLY_LIMIT )
   {
     cfg.headwordsDialog.autoApply = ui.autoApply->isChecked();
@@ -344,7 +334,7 @@ void DictHeadwords::saveHeadersToFile()
       if( progress.wasCanceled() )
         break;
 
-      QVariant value = model->getRow(i);// proxy->data( proxy->index( i, 0 ) );
+      QVariant value = model->getRow(i);
       if( !value.canConvert< QString >() )
         continue;
 

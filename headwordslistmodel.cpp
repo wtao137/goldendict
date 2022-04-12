@@ -19,7 +19,11 @@ bool HeadwordListModel::isFinish() const{
 
 QString HeadwordListModel::getRow(int row)
 {
-  return fileList.at(row);
+  if(fileSortedList.empty()){
+    fileSortedList<<fileList;
+    fileSortedList.sort();
+  }
+  return fileSortedList.at(row);
 }
 
 int HeadwordListModel::wordCount() const{

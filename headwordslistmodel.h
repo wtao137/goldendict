@@ -33,6 +33,7 @@ protected:
 
 private:
     QStringList fileList;
+    QStringList fileSortedList;
     long wordsCount;
     long totalSize;
     Dictionary::Class * _dict;
