@@ -146,8 +146,10 @@ MainWindow::MainWindow( Config::Class & cfg_ ):
 
 
   localSchemeHandler = new LocalSchemeHandler(articleNetMgr);
-  QWebEngineProfile::defaultProfile()->installUrlSchemeHandler("gdlookup", localSchemeHandler);
-  QWebEngineProfile::defaultProfile()->installUrlSchemeHandler("bword", localSchemeHandler);
+  QStringList articleSchemes={"gdlookup","bword","ifr"};
+  for(auto scheme:articleSchemes){
+    QWebEngineProfile::defaultProfile()->installUrlSchemeHandler(scheme.toLatin1(), localSchemeHandler);
+  }
 
   QStringList localSchemes={"gdau","gico","qrcx","bres","gdprg","gdvideo","gdpicture","gdtts"};
   resourceSchemeHandler = new ResourceSchemeHandler(articleNetMgr);

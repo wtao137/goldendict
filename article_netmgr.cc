@@ -279,6 +279,8 @@ QNetworkReply * ArticleNetworkAccessManager::createRequest( Operation op,
   {
     newReq.setRawHeader("User-Agent", req.rawHeader("User-Agent").replace(qApp->applicationName().toUtf8(), ""));
   }
+  QString referer=req.url().scheme()+QString("://")+req.url().host();
+  newReq.setRawHeader("Referer",referer.toLatin1());
 
   QNetworkReply *  reply = QNetworkAccessManager::createRequest( op, newReq, outgoingData );
 
@@ -554,15 +556,19 @@ LocalSchemeHandler::LocalSchemeHandler(ArticleNetworkAccessManager& articleNetMg
 
 void LocalSchemeHandler::requestStarted(QWebEngineUrlRequestJob *requestJob)
 {
-    QUrl url = requestJob->requestUrl();
-
-    QNetworkRequest request;
+  QUrl url = requestJob->requestUrl();
+  QNetworkRequest request;
+  if( url.scheme() == "ifr" )
+  {
+    QUrl newUrl( Utils::Url::queryItemValue( url, "website" ) );
+    request.setUrl( newUrl );
+  }
+  else
+  {
     request.setUrl( url );
+  }
 
-    QNetworkReply* reply=this->mManager.createRequest(QNetworkAccessManager::GetOperation,request);
-    connect(reply,&QNetworkReply::finished,requestJob,[=](){
-        requestJob->reply("text/html",reply);
-    });
-    connect(requestJob, &QObject::destroyed, reply, &QObject::deleteLater);
+  QNetworkReply * reply = this->mManager.createRequest( QNetworkAccessManager::GetOperation, request );
+  connect( reply, &QNetworkReply::finished, requestJob, [ = ]() { requestJob->reply( "text/html", reply ); } );
+  connect( requestJob, &QObject::destroyed, reply, &QObject::deleteLater );
 }
-

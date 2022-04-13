@@ -370,7 +370,7 @@ sptr< DataRequest > WebSiteDictionary::getArticle( wstring const & str,
     string result = "<div class=\"website_padding\"></div>";
 
     result += string( "<iframe id=\"gdexpandframe-" ) + getId() +
-                      "\" src=\"" + urlString.data() +
+              "\" src=\"ifr://localhost?website=" + urlString.toPercentEncoding().data() +
                       "\" onmouseover=\"processIframeMouseOver('gdexpandframe-" + getId() + "');\" "
                       "onmouseout=\"processIframeMouseOut();\" "
                       "scrolling=\"no\" marginwidth=\"0\" marginheight=\"0\" "
